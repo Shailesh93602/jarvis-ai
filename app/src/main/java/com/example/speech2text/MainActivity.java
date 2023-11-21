@@ -1,40 +1,36 @@
 package com.example.speech2text;
 
-import android.Manifest;
 import static com.example.speech2text.Functions.wishMe;
 
-//import static java.security.AccessController.getContext;
-
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
-//import android.app.AlarmManager;
-//import android.app.PendingIntent;
-import android.content.ActivityNotFoundException;
-//import android.content.BroadcastReceiver;
+import android.Manifest;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-//import android.media.MediaPlayer;
-import android.media.AudioManager;
+import android.content.pm.ResolveInfo;
+import android.database.Cursor;
 import android.net.Uri;
-//import android.os.Build;
+import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-//import android.provider.Settings;
+import android.provider.ContactsContract;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
 import android.text.format.DateUtils;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.PermissionToken;
@@ -49,15 +45,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-//import java.security.AccessControlContext;
-//import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
-//import java.util.regex.Matcher;
-//import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -74,7 +67,6 @@ public class MainActivity extends AppCompatActivity {
                     MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE);
             Log.d("MainActivity", "Working ");
         }
-//        player = MediaPlayer.create(this, Settings.System.DEFAULT_ALARM_ALERT_URI);
         Dexter.withContext(this)
                 .withPermission(android.Manifest.permission.RECORD_AUDIO)
                 .withListener(new PermissionListener(){
@@ -100,35 +92,12 @@ public class MainActivity extends AppCompatActivity {
                 startRecording();
             }
         });
-        //        startService(new Intent(this, AudioRecorderService.class));
 
     }
     private SpeechRecognizer recognizer;
     private TextView textView;
     private TextToSpeech tts;
 
-//    private MediaPlayer player;
-//    private final int requestId = 1;
-
-//    private Object context;
-
-//    public boolean isReadStoragePermissionGranted(){
-//        if(Build.VERSION.SDK_INT >= 23){
-//            if(checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
-//                Log.v(TAG, "Permission is granted 1");
-//                return true;
-//            }
-//            else{
-//                Log.v(TAG, "Permission is revoked 1");
-//                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 3);
-//                return false;
-//            }
-//        }
-//        else{
-//            Log.v(TAG, "Permission is granted1");
-//            return true;
-//        }
-//    }
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults){
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
@@ -160,12 +129,6 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void speak(String msg) {
-//        if(Build.VERSION.SDK_INT >=Build.VERSION_CODES.LOLLIPOP){
-//            tts.speak(msg, TextToSpeech.QUEUE_FLUSH, null);
-//        }
-//        else{
-//            tts.speak(msg, TextToSpeech.QUEUE_FLUSH, null);
-//        }
         tts.speak(msg, TextToSpeech.QUEUE_FLUSH, null);
     }
 
@@ -175,7 +138,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void response(String msg){
         String msgs = msg.toLowerCase(Locale.ROOT);
-        if(msgs.contains("hi")){
+        if(msgs.contains("hi") || msgs.contains("hello") || msgs.contains("hey")){
             speak("Hello Sir, Jarvis at your service Please tell me how can I help you?");
         }
         if(msgs.contains("time")){
@@ -183,30 +146,30 @@ public class MainActivity extends AppCompatActivity {
             String time = DateUtils.formatDateTime(this, date.getTime(),DateUtils.FORMAT_SHOW_TIME);
             speak(time);
         }
+        if(msgs.contains("day")){
+            Date date = new Date();
+            String day = DateUtils.formatDateTime(this, date.getDay(), DateUtils.FORMAT_SHOW_WEEKDAY);
+            speak("today is " + day);
+        }
         if(msgs.contains("date")){
             SimpleDateFormat dt = new SimpleDateFormat("dd MM yyyy");
             Calendar cal = Calendar.getInstance();
             String today_Date = dt.format(cal.getTime());
             speak("the date today is"+today_Date);
         }
-        if(msgs.contains("google")){
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com"));
-            startActivity(intent);
+
+        String[] appNames = {"google", "facebook", "instagram", "code chef", "youtube", "linkedin", "hackerrank"};
+        for(String appName: appNames){
+            if(msgs.contains(appName)){
+                String formattedAppName = appName.replace(" ", "");
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www."+formattedAppName+".com"));
+                startActivity(intent);
+            }
         }
-        if(msgs.contains("code chef")){
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.codechef.com"));
-            startActivity(intent);
-        }
-        if(msgs.contains("youtube")){
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com"));
-            startActivity(intent);
-        }
-        if(msgs.contains("facebook")){
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.facebook.com"));
-            startActivity(intent);
-        }
-        if(msgs.contains("instagram")){
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.instagram.com"));
+        if(msgs.contains("music")){
+            Intent intent = new Intent(Intent.ACTION_MAIN);
+            intent.addCategory(Intent.CATEGORY_APP_MUSIC);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
         }
         if(msgs.contains("search")){
@@ -221,15 +184,9 @@ public class MainActivity extends AppCompatActivity {
             String data = readFromFile();
             speak("Yes sir you told me to remember that "+data);
         }
-        if (msgs.contains("music")) {
-            Intent intent = new Intent(Intent.ACTION_MEDIA_BUTTON);
-            intent.setPackage("com.android.music"); // Package name of the default music player app
-            KeyEvent keyEvent = new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE);
-            intent.putExtra(Intent.EXTRA_KEY_EVENT, keyEvent);
-            sendBroadcast(intent);
+        if(msgs.contains("thank you")){
+            speak("You're Welcome! I'm here to assist you. Is there anything else on your mind?");
         }
-
-
         if(msgs.contains("whatsapp")){
             Intent intent = new Intent();
             intent.setAction(Intent.ACTION_SEND);
@@ -239,61 +196,84 @@ public class MainActivity extends AppCompatActivity {
             startActivity(Intent.createChooser(intent, ""));
             startActivity(intent);
         }
-        if(msgs.contains("calculator")){
+        if (msgs.contains("calculator")) {
             Intent intent = new Intent();
-            intent.setAction(Intent.ACTION_SEND);
-            intent.setPackage("com.vivo.calculator");
-            startActivity(Intent.createChooser(intent, ""));
-            startActivity(intent);
-        }
-        if(msgs.contains("youtube music")){
-            Intent intent = new Intent(Intent.ACTION_MAIN);
-            intent.addCategory(Intent.CATEGORY_APP_MUSIC);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
-        }
-//        if(msgs.indexOf("song")!=-1) {
-//            playMusic musicPlayer = new playMusic();
-//            musicPlayer.playMusic("https://");
-//        }
-        if(msgs.contains("call")){
-            Uri number = Uri.parse("tel:9714157380");
-            Intent intent = new Intent(Intent.ACTION_DIAL, number);
-            try{
+            intent.setAction(Intent.ACTION_MAIN);
+            intent.addCategory(Intent.CATEGORY_APP_CALCULATOR);
+
+            PackageManager packageManager = getPackageManager();
+            ResolveInfo resolveInfo = packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY);
+
+            if(resolveInfo != null){
+                intent.setClassName(resolveInfo.activityInfo.packageName, resolveInfo.activityInfo.name);
                 startActivity(intent);
-            }catch(ActivityNotFoundException e){
-                //dls ds
+            }
+            else{
+                speak("No application found");
             }
         }
-//        if(msgs.indexOf("set alarm at")!=-1){
-//            Pattern pattern = Pattern.compile("\\d{1,2}:\\d{2} [AP]M");
-//            Matcher matcher = pattern.matcher(msgs);
-//            if (matcher.find()) {
-//                try {
-//                    String timeString = matcher.group();
-//                    SimpleDateFormat dateFormat = new SimpleDateFormat("hh:mm a");
-//                    Calendar alarmTime = Calendar.getInstance();
-//                    alarmTime.setTime(dateFormat.parse(timeString));
-//
-//                    AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-//
-//                    AccessControlContext context = getContext();
-//                    Intent intent = new Intent(context, new BroadcastReceiver() {
-//                        @Override
-//                        public void onReceive(Context context, Intent intent) {
-//                            Toast.makeText(context, "Alarm Triggered", Toast.LENGTH_LONG).show();
-//                        }
-//                    });
-//
-//                    PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, 0);
-//
-//                    alarmManager.set(AlarmManager.RTC_WAKEUP, alarmTime.getTimeInMillis(), pendingIntent);
-//                }catch (ParseException e){
-//                    e.printStackTrace();
-//                }
-//            }
-//
-//        }
+
+
+        if (msgs.contains("call")) {
+            String contactName = msgs.replace("call", "").trim();
+
+            if (!contactName.isEmpty()) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CALL_PHONE}, 1);
+                    return;
+                }
+
+                ContentResolver contentResolver = getContentResolver();
+                Cursor cursor = contentResolver.query(
+                        ContactsContract.Contacts.CONTENT_URI,
+                        null,
+                        "UPPER(" + ContactsContract.Contacts.DISPLAY_NAME + ") = ?",
+                        new String[]{contactName.toUpperCase()},
+                        null
+                );
+
+                if (cursor != null) {
+                    try {
+                        if (cursor.moveToFirst()) {
+                            long contactId = cursor.getLong(cursor.getColumnIndexOrThrow(ContactsContract.Contacts._ID));
+
+                            Cursor phoneCursor = contentResolver.query(
+                                    ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                                    null,
+                                    ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = ?",
+                                    new String[]{String.valueOf(contactId)},
+                                    null
+                            );
+
+                            if (phoneCursor != null && phoneCursor.moveToFirst()) {
+                                String phoneNumber = phoneCursor.getString(phoneCursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER));
+
+                                Uri callUri = Uri.parse("tel:" + phoneNumber);
+                                Intent callIntent = new Intent(Intent.ACTION_CALL, callUri);
+                                startActivity(callIntent);
+                            } else {
+                                speak("No phone number found for the contact.");
+                            }
+
+                            if (phoneCursor != null) {
+                                phoneCursor.close();
+                            }
+                        } else {
+                            speak("No contact found. Please try again.");
+                        }
+                    } finally {
+                        cursor.close();
+                    }
+                }
+            }
+        }
+        if(msgs.contains("alarm")){
+            String time = msgs.replace("set alarm for", "").trim();
+
+            setAlarm(time);
+
+            speak("Alarm set for "+ time);
+        }
     }
 
     private void result() {
@@ -436,6 +416,51 @@ public class MainActivity extends AppCompatActivity {
             Log.e("Exception","File Write Failed"+e);
         }
     }
+
+    private void setAlarm(String time) {
+        String[] parts = time.split(":");
+        int hour = Integer.parseInt(parts[0]);
+        int minute = Integer.parseInt(parts[1]);
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(System.currentTimeMillis());
+        calendar.set(Calendar.HOUR_OF_DAY, hour);
+        calendar.set(Calendar.MINUTE, minute);
+
+        Intent alarmIntent = new Intent(this, AlarmReceiver.class);
+        PendingIntent pendingIntent;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            pendingIntent = PendingIntent.getBroadcast(this, 0, alarmIntent, PendingIntent.FLAG_IMMUTABLE);
+        } else {
+            pendingIntent = PendingIntent.getBroadcast(this, 0, alarmIntent, PendingIntent.FLAG_IMMUTABLE);
+        }
+
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+
+        if (alarmManager != null) {
+            alarmManager.set(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+        }
+    }
+
+
+
+
+
+    private String getDefaultClockAppPackageName() {
+        List<PackageInfo> installedPackages = getPackageManager().getInstalledPackages(PackageManager.GET_META_DATA);
+
+        for (PackageInfo packageInfo : installedPackages) {
+            if (packageInfo.applicationInfo.metaData != null) {
+                if (packageInfo.applicationInfo.metaData.getBoolean("android.alarm.clock", false)) {
+                    return packageInfo.packageName;
+                }
+            }
+        }
+
+        return null;
+    }
+
 
     public void startRecording() {
         Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
